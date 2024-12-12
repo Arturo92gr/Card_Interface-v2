@@ -5,6 +5,38 @@
 export class GameStateService {
     /** URL base de la API */
     static API_URL = 'http://localhost:3000/api';
+    static socket = io('http://localhost:3000', {
+        withCredentials: true,
+        transports: ['websocket', 'polling']
+    });
+    static stateUpdateCallbacks = new Set();
+
+    static init() {
+        this.socket.on('connect', () => {
+            console.log('Conectado al servidor');
+        });
+
+        this.socket.on('initialState', (state) => {
+            this.notifyStateUpdate(state);
+        });
+
+        this.socket.on('cardMoved', ({ cardId, containerId, position }) => {
+            const state = {
+                cards: {
+                    [cardId]: { containerId, position }
+                }
+            };
+            this.notifyStateUpdate(state);
+        });
+    }
+
+    static onStateUpdate(callback) {
+        this.stateUpdateCallbacks.add(callback);
+    }
+
+    static notifyStateUpdate(state) {
+        this.stateUpdateCallbacks.forEach(callback => callback(state));
+    }
 
     /**
      * Obtiene el estado actual del juego desde el servidor
@@ -37,22 +69,7 @@ export class GameStateService {
      * @param {Object} position - Nueva posición {left, top}
      * @returns {Promise<Object|null>} Respuesta del servidor o null si hay error
      */
-    static async updateCardPosition(cardId, containerId, position) {
-        try {
-            const response = await fetch(`${this.API_URL}/cards/${cardId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    containerId,
-                    position
-                })
-            });
-            return response.json();
-        } catch (error) {
-            console.error('Error updating card position:', error);
-            return null;
-        }
+    static updateCardPosition(cardId, containerId, position) {
+        this.socket.emit('updateCardPosition', { cardId, containerId, position });
     }
 }

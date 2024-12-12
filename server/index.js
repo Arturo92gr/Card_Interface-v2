@@ -1,48 +1,85 @@
+/**
+ * Servidor Express que gestiona el estado del juego
+ * Proporciona una API REST para sincronizar el estado entre clientes
+ */
+
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 
 // Configuración inicial del servidor Express
 const app = express();
-const port = 3000;
+const httpServer = createServer(app);
 
-// Configuración CORS para permitir peticiones desde el cliente
-app.use((req, res, next) => {
-    // Permitir peticiones desde cualquier origen
-    res.header('Access-Control-Allow-Origin', '*');
-    // Métodos HTTP permitidos
-    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
-    // Cabeceras permitidas
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-
-    // Manejar peticiones OPTIONS para CORS preflight
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-    } else {
-        next();
+// Configuración actualizada de CORS para Socket.IO
+const io = new Server(httpServer, {
+    cors: {
+        origin: ["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:3000", "http://127.0.0.1:3000"],
+        methods: ["GET", "POST", "PUT"],
+        allowedHeaders: ["Content-Type"],
+        credentials: true
     }
 });
+
+// Configuración CORS para Express
+app.use(cors({
+    origin: ["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:3000", "http://127.0.0.1:3000"],
+    methods: ["GET", "POST", "PUT", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
 
 // Middleware para procesar JSON
 app.use(express.json());
 
-// Estado global del juego - almacena posición de cada carta
+/**
+ * Estado global del juego
+ * Almacena la posición de cada carta por su ID
+ * @type {Object}
+ */
 let gameState = {
     cards: {}
 };
 
-// API endpoints
-// GET: Obtener estado actual del juego
+// Configuración de Socket.IO
+io.on('connection', (socket) => {
+    console.log('Cliente conectado:', socket.id);
+
+    // Enviar estado actual al cliente que se conecta
+    socket.emit('initialState', gameState);
+
+    // Escuchar actualizaciones de posición de cartas
+    socket.on('updateCardPosition', ({ cardId, containerId, position }) => {
+        gameState.cards[cardId] = { containerId, position };
+        // Emitir la actualización a todos los clientes excepto al emisor
+        socket.broadcast.emit('cardMoved', { cardId, containerId, position });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Cliente desconectado:', socket.id);
+    });
+});
+
+// Endpoints de la API
+/**
+ * GET /api/state - Obtiene el estado actual del juego
+ */
 app.get('/api/state', (req, res) => {
     res.json(gameState);
 });
 
-// POST: Actualizar estado completo del juego
+/**
+ * POST /api/state - Actualiza el estado completo del juego
+ */
 app.post('/api/state', (req, res) => {
     gameState = req.body;
     res.json({ success: true });
 });
 
-// PUT: Actualizar posición de una carta específica
+/**
+ * PUT /api/cards/:cardId - Actualiza la posición de una carta específica
+ */
 app.put('/api/cards/:cardId', (req, res) => {
     const { cardId } = req.params;
     const cardState = req.body;
@@ -51,6 +88,7 @@ app.put('/api/cards/:cardId', (req, res) => {
 });
 
 // Iniciar el servidor
-app.listen(port, () => {
+const port = 3000;
+httpServer.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });

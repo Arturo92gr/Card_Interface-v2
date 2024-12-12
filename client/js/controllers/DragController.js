@@ -11,6 +11,8 @@ export class DragController {
      */
     constructor() {
         this.init();
+        // Suscribirse a actualizaciones de estado
+        GameStateService.onStateUpdate(this.handleStateUpdate.bind(this));
     }
 
     /**
@@ -101,7 +103,7 @@ export class DragController {
             const position = this.calculateDropPosition(event, container, draggedElement);
             
             this.updateCardPosition(draggedElement, container, position);
-            await GameStateService.updateCardPosition(
+            GameStateService.updateCardPosition(
                 draggedElement.id,
                 container.dataset.palo || 'baraja',
                 position
@@ -149,6 +151,23 @@ export class DragController {
      * @param {Object} state - Estado del juego
      */
     async applyState(state) {
+        if (state && state.cards) {
+            Object.entries(state.cards).forEach(([cardId, cardState]) => {
+                const card = document.getElementById(cardId);
+                const container = document.querySelector(
+                    cardState.containerId === 'baraja' 
+                        ? '.baraja' 
+                        : `[data-palo="${cardState.containerId}"]`
+                );
+                
+                if (card && container) {
+                    this.updateCardPosition(card, container, cardState.position);
+                }
+            });
+        }
+    }
+
+    handleStateUpdate(state) {
         if (state && state.cards) {
             Object.entries(state.cards).forEach(([cardId, cardState]) => {
                 const card = document.getElementById(cardId);
