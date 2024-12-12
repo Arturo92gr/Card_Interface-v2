@@ -1,12 +1,20 @@
-import { uiDrag } from "./uiDrag.js";
-import { Card } from "./Card.js";
+import { Card } from "./models/Card.js";
+import { DragController } from "./controllers/DragController.js";
+import { GameStateService } from "./services/GameStateService.js";
 
-// Inicializar la baraja
-const baraja = document.querySelector('.baraja');
-Card.dealCards(baraja);
+async function initializeGame() {
+    // Inicializar la baraja
+    const baraja = document.querySelector('.baraja');
+    Card.dealCards(baraja);
 
-// Inicializar el sistema de arrastre
-uiDrag.init(".contenedor, .baraja", ".card");
+    // Inicializar el controlador de arrastre
+    const dragController = new DragController();
 
-// Cargar estado previo del servidor
-await uiDrag.loadState();
+    // Cargar estado previo
+    const state = await GameStateService.getState();
+    if (state) {
+        dragController.applyState(state);
+    }
+}
+
+initializeGame();

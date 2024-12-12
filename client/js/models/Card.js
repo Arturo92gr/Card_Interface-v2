@@ -1,8 +1,16 @@
+/**
+ * Clase que representa una carta de la baraja española
+ * Maneja la creación, mezcla y distribución de las cartas
+ */
 export class Card {
-    // Array con los palos disponibles en la baraja
+    /** Array con los palos disponibles en la baraja española */
     static palos = ['diamantes', 'corazones', 'picas', 'treboles'];
     
-    // Constructor de la carta: crea el elemento DOM con sus propiedades
+    /**
+     * Constructor de la carta
+     * @param {number} numero - Número de la carta (1-12)
+     * @param {string} palo - Palo de la carta (diamantes, corazones, picas, treboles)
+     */
     constructor(numero, palo) {
         // Crear el elemento div que representará la carta
         this.element = document.createElement('div');
@@ -28,7 +36,10 @@ export class Card {
         `;
     }
 
-    // Crea una baraja completa con todas las cartas
+    /**
+     * Crea una baraja completa de 48 cartas (12 por palo)
+     * @returns {Card[]} Array con todas las cartas de la baraja
+     */
     static createDeck() {
         let deck = [];
         // Para cada palo, crear cartas del 1 al 12
@@ -40,7 +51,11 @@ export class Card {
         return deck;
     }
 
-    // Mezcla aleatoriamente las cartas de la baraja
+    /**
+     * Mezcla aleatoriamente las cartas usando el algoritmo Fisher-Yates
+     * @param {Card[]} deck - Baraja a mezclar
+     * @returns {Card[]} Baraja mezclada
+     */
     static shuffleDeck(deck) {
         let currentIndex = deck.length, randomIndex;
         // Algoritmo Fisher-Yates para mezclar
@@ -52,7 +67,11 @@ export class Card {
         return deck;
     }
 
-    // Reparte las cartas en el contenedor especificado
+    /**
+     * Reparte las cartas en el contenedor especificado
+     * @param {HTMLElement} container - Contenedor donde se colocarán las cartas
+     * @returns {Card[]} Baraja repartida
+     */
     static dealCards(container) {
         const deck = this.shuffleDeck(this.createDeck());
         let offset = 0;
@@ -70,7 +89,11 @@ export class Card {
         return deck;
     }
 
-    // Obtiene la carta superior del contenedor (mayor z-index)
+    /**
+     * Obtiene la carta superior del contenedor (la que tiene mayor z-index)
+     * @param {HTMLElement} container - Contenedor de cartas
+     * @returns {HTMLElement|null} Elemento DOM de la carta superior o null si no hay cartas
+     */
     static getTopCard(container) {
         const cards = Array.from(container.querySelectorAll('.card'));
         if (cards.length === 0) return null;
